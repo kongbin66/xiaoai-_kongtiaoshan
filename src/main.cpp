@@ -5,16 +5,10 @@
 
 #include <Blinker.h>
 
-//秘钥
-#if 1
+
+
 char auth[] = "f82cf05d3d63";   //换成APP获取到的密匙
-char ssid[] = "UROBEI";          //WiFi账号
-char pswd[] = "UROBEI123";   //WIFI密码
-#else
-char auth[] = "f82cf05d3d63";   //空调扇
-char ssid[] = "anlengkj";          //WiFi账号
-char pswd[] = "al77776666";   //WIFI密码
-#endif
+
 
 //端口
 #define KTMS 2      //空调模式
@@ -279,7 +273,46 @@ void miotMode(uint8_t mode)
     BlinkerMIOT.print();
 }
 
+void mySmartWifiConfig()
+{
+  WiFi.mode(WIFI_STA );
+  Serial.println("SmartwifiConfig:");
+  WiFi.beginSmartConfig();
+  while (1)
+  {
+    Serial.print(".");
+    delay(500);
+    if (WiFi.smartConfigDone())
+    {
+      Serial.println("SmartwifiConfig ok\n");
+      Serial.printf("SSID:%s", WiFi.SSID().c_str());
+      Serial.printf("PSW:%s", WiFi.psk().c_str());
+      break;
+    }
+  }
+}
 
+bool autoConfig()
+{
+  WiFi.disconnect(true);
+  WiFi.begin();
+  for (size_t i = 0; i < 20; i++)
+  {
+    int wifiStatus = WiFi.status();
+    if (wifiStatus == WL_CONNECTED)
+    {
+      Serial.println("connected!\n");
+      return 1;
+    }
+    else
+    {
+      delay(1000);
+      Serial.println("wait...");
+    }
+  }
+  Serial.println("no connect!");
+  return 0;
+}
 
 void setup() {
     Serial.begin(115200);
@@ -296,8 +329,13 @@ void setup() {
     digitalWrite(18,LOW);
     pinMode(19,OUTPUT);
     digitalWrite(19,LOW);
+     if (!autoConfig())
+    {
+        mySmartWifiConfig();
+    }
+ 
+    Blinker.begin(auth, WiFi.SSID().c_str(), WiFi.psk().c_str());
    
-    Blinker.begin(auth, ssid, pswd);
     BlinkerMIOT.attachMode(miotMode);
     Button0.attach(button0_callback);//空调
     Button1.attach(button1_callback);//一档
@@ -313,5 +351,10 @@ void setup() {
 
 void loop()
 {
+ if (!WiFi.isConnected())
+  {
+    Serial.println("no");
+    delay(1000);
+  }
     Blinker.run();
 }
